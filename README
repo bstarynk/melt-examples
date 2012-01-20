@@ -5,8 +5,8 @@ http://gcc-melt.org/ for more about MELT, and http://gcc.gnu.org/ for
 more about GCC.
 
 The examples are either public domain, or free software licensed under
-the LGPL license. They are developped on Gnu/Linux with a GCC 4.6 or
-better compiler.
+the LGPL license. (licensing may vary from file to file).  They are
+developped on Gnu/Linux/Debian/Sid with a GCC 4.6 or better compiler.
 
 Each example has a small file SUMMARY. So to get a feeling of the
 examples, just run

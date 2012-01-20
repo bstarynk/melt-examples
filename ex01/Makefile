@@ -1,11 +1,11 @@
 ## file ex01/Makefile
 ## in the public domain
-CC=gcc
-RM=rm -vf
-.PHONY: all clean
 
-all:
-	$(CC) 
+include ../common.mk
 
-clean:
-	$(RM) *.o
+all: $(MELTQUICKLYBUILTMODULES)
+
+run: $(MELTQUICKLYBUILTMODULES) $(meltempty)
+	$(MELTGCC) $(meltmode)=nop $(meltextra)=$(MELTBASE) -c $(meltempty)
+	$(MELTGCC) $(meltmode)=runfile $(meltarg)=$(MELTBASE) -c $(meltempty)
+
