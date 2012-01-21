@@ -1,8 +1,6 @@
-;; -*- Lisp -*-
-
+;; -*- Lisp -*-                     file ex01m-helloworld.melt
 ;; comment appearing in the generated C file.
 (comment "file ex01-helloworld.melt is in the public domain")
-
 (code_chunk hellochk
   #{ printf("Hello by $HELLOCHK from %s at %d\n", __FILE__, __LINE__); }#
 )
