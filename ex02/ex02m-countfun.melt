@@ -18,7 +18,7 @@
   (debug "funcounter_docmd cmd=" cmd)
   (register_pass_execution_hook 
    (lambda (passname :long num)
-     (debug "passname=" passname)
+     (debug "passexechook passname=" passname " num=" num)
      (code_chunk passexec
 		 #{/*$PASSEXEC*/ printf("pass %s #%d\n", 
 					melt_string_str($PASSNAME), $NUM);}#

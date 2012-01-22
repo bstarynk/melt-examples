@@ -6,4 +6,6 @@ include ../common.mk
 all: $(MELTQUICKLYBUILTMODULES)
 
 run:  ex02c-sample.c $(MELTQUICKLYBUILTMODULES)
-	$(MELTGCC) -O -v $(meltmode)=funcounter $(meltextra)=$(MELTBASE) -c $<
+	$(MELTGCC) -O -v $(meltmode)=funcounter \
+	     $(meltworkdir)=meltworkdir \
+             $(meltextra)=$(MELTBASE) -c $<
