@@ -6,23 +6,13 @@
 
 ;; the counting function, as an extra GCC pass
 (defun countfun_pass_exec ()
-       (set_content fun_counter (+ivi !fun_counter 1))
-       (code_chunk countfunx #{printf("inside countfun_pass_exec $COUNTFUNX\n");
-		   }#)
-       (debug "incremented fun_counter=" fun_counter)
-       (shortbacktrace_dbg "countfun_pass_exec" 6)
-       )
+  (set_content fun_counter (+ivi !fun_counter 1))
+  (debug "incremented fun_counter=" fun_counter)
+  )
 
 ;; the function triggered by our funcounter mode
 (defun funcounter_docmd (cmd moduldata)
   (debug "funcounter_docmd cmd=" cmd)
-  (register_pass_execution_hook 
-   (lambda (passname :long num)
-     (debug "passexechook passname=" passname " num=" num)
-     (code_chunk passexec
-		 #{/*$PASSEXEC*/ printf("pass %s #%d\n", 
-					melt_string_str($PASSNAME), $NUM);}#
-		 )))
   (let ( (countfunpass (instance class_gcc_gimple_pass
 				 :named_name '"countfun_pass"
 				 :gccpass_exec countfun_pass_exec))
@@ -33,13 +23,15 @@
      (lambda ()
        (let ( (:long nbcount (get_int !fun_counter))
 	      )
-	 (shortbacktrace_dbg "exiting coutfun" 8)
 	 (code_chunk 
 	  informusercount
 	  #{ /*$INFORMUSERCOUNT*/ inform(UNKNOWN_LOCATION,
-				    "MELT counted %d functions / $INFORMUSERCOUNT", 
+				    "MELT counted %ld functions / $INFORMUSERCOUNT", 
 				    $NBCOUNT) ; 
-	  }#))))))
+	  }#))))
+    (debug "funcounter mode success cmd=" cmd)
+    (return :true)
+    ))
 
 (definstance funcounter_mode
   class_melt_mode
