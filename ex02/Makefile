@@ -1,4 +1,4 @@
-## file ex01/Makefile
+## file ex02/Makefile
 ## in the public domain
 
 include ../common.mk

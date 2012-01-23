@@ -1,0 +1,15 @@
+; -*- lisp -*-
+;; file ex03m-passhook.melt
+
+(defun passhook (passname :long passnum)
+   (debug "passhook passname=" passname " passnum=" passnum)
+   (shortbacktrace_dbg "passhook" 10)
+   (code_chunk passhookchk
+   #{/*$PASSHOOKCHK*/ printf("passhook %s #%d\n",
+   		             melt_string_str ($PASSNAME),
+			     (int) $PASSNUM);}#
+			     )
+)
+
+(register_pass_execution_hook  passhook)
+(debug "registered passexec passhook=" passhook)
