@@ -1,0 +1,60 @@
+;; file ex04m-searchfun.melt -*- lisp -*-
+(comment "file ex04m-searchfun.melt in public domain. 
+Search functions whose name starts with bee and with all integral arguments")
+
+;; our execute function in pass
+(defun searchfun_pass_exec  ()
+  (with_cfun_decl
+   ()
+   (:tree cfundecl)
+   (debug "searchfun_exec cfundecl=" cfundecl)
+   (match cfundecl
+	  ( ?(tree_function_decl_named 
+	      ?(cstring_prefixed "bee") ?_)
+	     (let ( (:long ok 1)
+		    )
+	       (debug "well-named cfundecl=" cfundecl)
+	       (each_param_in_fundecl
+		(cfundecl)
+		(:tree argdtree)
+		(debug "searchfun_exec argdtree=" argdtree)
+		(match argdtree
+		       ( ?(tree_parm_decl
+			   ?(tree_integer_type ?typname ?_ ?_ ?_)
+			   ?_)
+			  (void))
+		       ( ?_
+			 (setq ok 0))
+		       )
+		(debug "searchfun_exec now ok=" ok)
+		)
+	       (debug "searchfun_exec cfundecl=" cfundecl " ok=" ok)
+	       (if ok
+		   (inform_at_tree cfundecl "found nice beefy function"))
+	       ))
+	  ( ?_
+	    (void))
+	  )
+   )
+  )
+
+;; the function triggered by our searchfun mode
+(defun searchfun_docmd (cmd moduldata)
+  (debug "searchfun_docmd cmd=" cmd)
+  (let ( (searchfunpass (instance class_gcc_gimple_pass
+				 :named_name '"searchfun_pass"
+				 :gccpass_exec searchfun_pass_exec))
+	 )
+    (install_melt_gcc_pass searchfunpass "after" "cfg" 0)
+    (debug "searchfunpass=" searchfunpass)
+    (debug "searchfun mode success cmd=" cmd)
+    (return :true)
+    ))
+
+(definstance searchfun_mode
+  class_melt_mode
+  :named_name '"searchfun"
+  :meltmode_help '"install a pass to search function with two integral formals"
+  :meltmode_fun searchfun_docmd
+)
+(install_melt_mode searchfun_mode)
