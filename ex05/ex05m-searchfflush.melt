@@ -1,0 +1,59 @@
+;; file ex05m-searchfflush.melt -*- lisp -*-
+(comment "file ex05m-searchfflush.melt in public domain.  Search
+functions whose name start with bar and which calls fflush with NULL,
+perhaps indirectly thru an inlined function.")
+
+;; our execute function in pass
+(defun searchfflush_pass_exec (pass)
+  (with_cfun_decl ()
+   (:tree cfundecl)
+   (debug "searchfflush_pass_exec cfundecl=" cfundecl " pass=" pass)
+   ;; that pass may be called several times for a given cfun, so we
+   ;; register the cfun in a pass-global map
+   (let ( (passmap (get_field :gccpass_data pass))
+	  )
+     (if (maptree_get passmap cfundecl) 
+	 (return))
+     (maptree_put passmap cfundecl :true))
+   (match cfundecl
+	  ( ?(tree_function_decl_named
+	      ?(cstring_prefixed "bar") ?_)
+	     (each_bb_current_fun ()
+		 (:basic_block bb)
+		 (debug "bb=" bb)
+		 (eachgimple_in_basicblock (bb)
+		    (:gimple g)
+		    (debug "g=" g)
+		    (match 
+		     g
+		     ( ?(gimple_call_1  ?_ 
+			 ?(tree_function_decl_named
+			   ?(cstring_same "fflush") ?_)
+			 ?(tree_integer_cst 0))
+			(debug "got fflush at g=" g)
+			(inform_at_gimple g "found fflush(NULL)"))
+		     ( ?_ ())))))
+	  ( ?_ ()))))
+
+;; the function triggered by our searchfflush mode
+(defun searchfflush_docmd (cmd moduldata)
+  (debug "searchfflush_docmd cmd=" cmd)
+  (let ( (searchfflushpass (instance class_gcc_gimple_pass
+				 :named_name '"searchfflush_pass"
+				 ;; a map to register the visited cfuns
+				 :gccpass_data (make_maptree discr_map_trees 100)
+				 :gccpass_exec searchfflush_pass_exec))
+	 )
+    (install_melt_gcc_pass searchfflushpass "after" "phiopt" 0)
+    (debug "searchfflushpass=" searchfflushpass)
+    (debug "searchfflush mode success cmd=" cmd)
+    (return :true)
+    ))
+
+(definstance searchfflush_mode
+  class_melt_mode
+  :named_name '"searchfflush"
+  :meltmode_help '"install a pass to search function for fflush"
+  :meltmode_fun searchfflush_docmd
+)
+(install_melt_mode searchfflush_mode)
