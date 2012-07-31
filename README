@@ -1,4 +1,5 @@
-A bag of simple MELT examples.
+A bag of simple MELT examples, by Basile Starynkevitch 
+(France, working at CEA, LIST)  <basile@starynkevitch.net>
 
 MELT is a Domain Specific Language to extend the GCC compiler. See
 http://gcc-melt.org/ for more about MELT, and http://gcc.gnu.org/ for
@@ -8,7 +9,22 @@ The examples are either public domain, or free software licensed under
 the LGPL license. (licensing may vary from file to file).  They are
 developped on Gnu/Linux/Debian/Sid with a GCC 4.6 or better compiler.
 
-Each example has a small file SUMMARY. So to get a feeling of the
-examples, just run
+Each example has a small file SUMMARY. Here they are:
+####SUMMARIES:
+==> ex01/SUMMARY <==
+ex01/ - hello world in MELT                                      [Public Domain]
 
-   head ex*/SUMMARY
+==> ex02/SUMMARY <==
+ex02/ - counting functions in MELT with a simple Gimple pass    [public domain]
+
+
+==> ex03/SUMMARY <==
+ex03/ - showing the GCC pass names thru MELT hooks   [public domain]
+
+
+==> ex04/SUMMARY <==
+ex04/ - searching simple function signatures [plugin domain]
+
+==> ex05/SUMMARY <==
+ex05/ - search fflush(NULL) in every function named bar*
+===========
