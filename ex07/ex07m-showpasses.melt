@@ -1,0 +1,23 @@
+;; file ex06m-showpasses.melt -*- lisp -*-
+(comment "file ex06m-showpasses.melt in public domain.  Print the pass name and number.")
+(defun showpass (passname :long num)
+       (code_chunk showchk #{ 
+  static int count;
+  count++;
+  printf("(%d) pass %s #%ld\n", count, melt_string_str($PASSNAME), $NUM);
+  }#))
+
+
+;; the function triggered by our searchfflush mode
+(defun showpass_docmd (cmd moduldata)
+  (debug "searchfflush_docmd cmd=" cmd)
+  (register_pass_execution_hook showpass)
+  (return :true))
+
+(definstance showpass_mode
+ class_melt_mode
+ :named_name '"showpass"
+  :meltmode_help '"show pass execution"
+  :meltmode_fun showpass_docmd
+)
+(install_melt_mode showpass_mode)
