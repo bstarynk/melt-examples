@@ -17,14 +17,18 @@ ex01/ - hello world in MELT                                      [Public Domain]
 ==> ex02/SUMMARY <==
 ex02/ - counting functions in MELT with a simple Gimple pass    [public domain]
 
-
 ==> ex03/SUMMARY <==
 ex03/ - showing the GCC pass names thru MELT hooks   [public domain]
-
 
 ==> ex04/SUMMARY <==
 ex04/ - searching simple function signatures [plugin domain]
 
 ==> ex05/SUMMARY <==
 ex05/ - search fflush(NULL) in every function named bar*
-===========
+
+
+==> ex06/SUMMARY <==
+ex06/  -- typecheck JANSSON variadic functions
+
+       a MELT extension to typecheck json_pack and json_unpack variadic functions
+       from http://www.digip.org/jansson (a C library for JSON serialization).  ===========

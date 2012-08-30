@@ -21,16 +21,18 @@
 ## every example directory's Makefile
 
 ## the GCC for our MELT
-
+GCC=gcc 
 CC=$(MELTGCC)
-MELTGCC=gcc -fplugin=melt
+MELTGCC=$(GCC) -fplugin=melt
 
 
 ## the default MELT sources
 MELTSOURCES=$(wildcard *.melt)
 MELTBASE=$(patsubst %.melt,%,$(MELTSOURCES))
 MELTQUICKLYBUILTMODULES=$(patsubst %.melt,%.quicklybuilt.so,$(MELTSOURCES))
-MELTGENERATED=$(patsubst %,%.c,$(MELTBASE))  $(wildcard $(patsubst %,%+*.[ch],$(MELTBASE)))
+MELTGENERATED=$(patsubst %,%.c,$(MELTBASE)) \
+   $(wildcard $(patsubst %,%+*.[ch],$(MELTBASE))) \
+   $(wildcard $(patsubst %,%+meltbuild.mk,$(MELTBASE)))
 
 ### do we use the MELT plugin; leave empty if using the MELT branch
 meltisplugin=yes
@@ -73,5 +75,5 @@ meltworkdir:
 
 
 clean:
-	$(RM) -f *.o *.so *% *~ $(meltempty) $(MELTGENERATED)
+	$(RM) -f *.o *.so *% *~ _* $(meltempty) $(MELTGENERATED)
 	$(RM) -rf meltworkdir

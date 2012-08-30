@@ -1,0 +1,6 @@
+ex06/  -- typecheck JANSSON variadic functions
+
+       a MELT extension (LGPLv3 license) to typecheck json_pack and
+       json_unpack variadic functions from
+       http://www.digip.org/jansson (a C library for JSON
+       serialization).

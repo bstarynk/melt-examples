@@ -1,4 +1,10 @@
 *~
 ex*/*~
+ex*/*%
+ex*/*.o
 ex*/*.so
-ex0/*work*
+ex0*/*work*
+ex0*/empty*
+ex0*/*+melt*.[ch]
+ex0*/*+melt*.mk
+ex0*/ex0?m*.c

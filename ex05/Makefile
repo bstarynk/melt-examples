@@ -1,4 +1,4 @@
-## file ex04/Makefile in the public domain
+## file ex05/Makefile in the public domain
 include ../common.mk
 
 all: $(MELTQUICKLYBUILTMODULES)
