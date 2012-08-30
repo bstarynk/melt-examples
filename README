@@ -30,5 +30,9 @@ ex05/ - search fflush(NULL) in every function named bar*
 ==> ex06/SUMMARY <==
 ex06/  -- typecheck JANSSON variadic functions
 
-       a MELT extension to typecheck json_pack and json_unpack variadic functions
-       from http://www.digip.org/jansson (a C library for JSON serialization).  ===========
+       a MELT extension (LGPLv3 license) to typecheck json_pack and
+       json_unpack variadic functions from
+       http://www.digip.org/jansson (a C library for JSON
+       serialization).
+==> ex07/SUMMARY <==
+ex07/     show the passes done by GCC [public domain]===========
