@@ -70,21 +70,51 @@
 
 
 
+;; MELT 0.9.7 has a tree_char_type_node cmatcher, but previous MELT don't have it, so..
+(defprimitive tree_char_type_node () :tree
+  :doc #{Gives the char type tree node}#
+  #{ char_type_node }#)
+
+
+;; check a json_pack call with constant format vfmtstr string
+(defun jansson_check_pack_call (vfmtstr :gimple g :long nbargs)
+  (debug "jansson_check_pack_call vfmtstr=" vfmtstr " g=" g " nbargs=" nbargs)
+  (compile_warning "jansson_check_pack_call is incomplete")
+)
+
+;; our gimple walker function just matches the relevant calls to json_pack & json_unpack
 (defun jansson_gimple_walker (pass :gimple g)
   (let ( (:tree tr_json_pack (tree_content !ref_json_pack))
 	 (:tree tr_json_unpack (tree_content !ref_json_unpack))
+	 (:tree tr_char (tree_char_type_node))
 	 )
     (debug "jansson_gimple_walker g=" g 
 	   "\n tr_json_pack=" tr_json_pack " tr_json_unpack=" tr_json_unpack)
     (match 
      g
+     ;; call to json_pack
      (?(gimple_call_1_more ?lhs tr_json_pack ?fmtarg ?nbargs)
-       (debug "found json_pack call g=" g " fmtarg=" fmtarg " nbargs=" nbargs)
+       (debug "found call to json_pack g=" g "\n* fmtarg=" fmtarg "\n* nbargs=" nbargs)
+       (match fmtarg
+	      (?(tree_addr_expr 
+		 ?(tree_pointer_type 
+		   ?(tree_array_type tr_char ?trdomtype)) 
+		 ?(tree_string_cst ?vfmtstr))
+		(debug "json_pack call fmtarg trdomtype=" trdomtype "\n vfmtstr=" vfmtstr)
+		(jansson_check_pack_call vfmtstr g nbargs)
+		(void)
+		)
+	      (?_ 
+	       (debug "json_pack call other fmtarg=" fmtarg)
+	       (void))
+	      )
        )
+     ;; call to json_unpack
      (?(gimple_call_2_more ?lhs tr_json_unpack ?jsrootarg ?fmtarg ?nbargs)
-       (debug "found json_unpack call g=" g " jsrootarg=" jsrootarg 
+       (debug "found call to json_unpack g=" g " jsrootarg=" jsrootarg 
 	      " fmtarg=" fmtarg " nbargs=" nbargs)
        )
+     ;; anything else
      (?_
       (void))))
   (return :true g)		   ;continue the walk on other gimples
