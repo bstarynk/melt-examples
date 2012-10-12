@@ -39,6 +39,17 @@
 
 
 
+;; MELT 0.9.7 don't have these yet, but the next one will have
+;; tree_useless_type_conversion_p & tree_types_compatible_p
+(defprimitive basile_useless_type_conversion_p (:tree tr1 tr2) :long
+  #{/*basile_useless_type_conversion_p*/ ($TR1) && ($TR2)
+  && useless_type_conversion_p(($TR1),($TR2))}#)
+
+(defprimitive basile_types_compatible_p (:tree tr1 tr2) :long
+  #{/*basile_types_compatible_p*/ ($TR1) && ($TR2)
+  && types_compatible_p(($TR1),($TR2))}#)
+
+
 ;; a finish decl hook to find out the `json_t`, `json_pack` and `json_unpack` names and their trees
 (defun jansson_finish_decl_hook (treedeclval)
   (let ( (:tree treedecl (tree_content treedeclval))
@@ -133,12 +144,12 @@
 	      (?_
 	       (debug "jansson_check_pack_call strange char curch#" curch)))
        ;;
-       (debug "jansson_check_pack_call end match curch=" curch)
-     )					;end foreach_in_string
-     (debug "jansson_check_pack_call end")
-    ))    
+       (debug "jansson_check_pack_call end match curch=" curch " ix=" ix)
+       ))				;end foreach_in_string
+    (debug "jansson_check_pack_call end curargnum=" curargnum)
+    )   
   (compile_warning "jansson_check_pack_call is incomplete")
-)
+  )
 
 ;; our gimple walker function just matches the relevant calls to json_pack & json_unpack
 (defun jansson_gimple_walker (pass :gimple g)
@@ -193,19 +204,24 @@
      (if (maptree_get passmap cfundecl) 
 	 (return))
      (maptree_put passmap cfundecl :true))
-     ;; every basic block of the current cfun is interesting
-     (each_bb_current_fun 
-      ()
-      (:basic_block bb)
-      (debug "scanprobe_exec bb=" bb)
-      (let (
-	    (:long bbix (basicblock_index bb))
-	    (:gimple_seq bbgs (gimple_seq_of_basic_block bb))
-	    )
-	(walk_gimple_seq_unique_tree pass bbgs 
-				     jansson_gimple_walker
-				     ())
-   ))))
+   ;; every basic block of the current cfun is interesting
+   (each_bb_current_fun 
+    ()
+    (:basic_block bb)
+    (debug "jansson_pass_exec bb=" bb)
+    (let (
+	  (:long bbix (basicblock_index bb))
+	  (:gimple_seq bbgs (gimple_seq_of_basic_block bb))
+	  )
+      (debug "jansson_pass_exec before walking bbgs=" bbgs)
+      (walk_gimple_seq_unique_tree pass bbgs 
+				   jansson_gimple_walker
+				   ())
+      (debug "jansson_pass_exec after walking bbgs=" bbgs)
+	
+      ))
+   (debug "jansson_pass_exec end cfundecl=" cfundecl)
+   ))
 
 ;; command and MELT mode for our Jansson typechecking analysis
 (defun jansson_docmd  (cmd moduldata)
