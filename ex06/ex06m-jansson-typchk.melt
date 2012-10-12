@@ -10,7 +10,8 @@
   * http://gcc-melt.org/ for more) for GCC to typecheck variadic calls
   * to json_pack and json_unpack functions -when their format string
   * argument is a constant- from the JANSSON library
-  * http://www.digip.org/jansson
+  * http://www.digip.org/jansson ; this requires MELT 0.9.7 (from october 2012)
+  * or later MELT plugin release.
 
   * This MELT extension is free software; you can redistribute it
   * and/or modify it under the terms of the GNU Lesser General Public
@@ -37,48 +38,105 @@
 (definstance ref_json_unpack class_reference)
 
 
-;; Test that the file location of a declaration is inside "jansson.h" include file.
-;; After MELT 0.9.6 we could use the tree_decl_at_source_location cmatcher instead.
-(defprimitive tree_is_jansson_declaration (:tree tr) :long
-  :doc #{return non zero if $TR is a declaration inside the jansson.h header.}#
-  #{ /*jansson_declaration_p*/ $TR && DECL_P($TR) 
-   && DECL_SOURCE_LOCATION($TR) != UNKNOWN_LOCATION
-   && strstr (LOCATION_FILE(DECL_SOURCE_LOCATION($TR)), "jansson.h") }#)
 
 ;; a finish decl hook to find out the `json_t`, `json_pack` and `json_unpack` names and their trees
 (defun jansson_finish_decl_hook (treedeclval)
   (let ( (:tree treedecl (tree_content treedeclval))
 	 )
     (match treedecl
-	   (?(tree_type_decl ?trty  ?(cstring_same "json_t") ?uid)
-	     (debug "found json_t treedecl=" treedecl)
-	     (if (tree_is_jansson_declaration treedecl)
-		 (set_ref ref_json_t (make_tree discr_tree treedecl)))
-	     )
-	   (?(tree_function_decl_of_name "json_pack" ?_ ?_)
-	     (debug "found json_pack treedecl=" treedecl)
-	     (if (tree_is_jansson_declaration treedecl)
-		 (set_ref ref_json_pack (make_tree discr_tree treedecl)))
-	     )
-	   (?(tree_function_decl_of_name "json_unpack" ?_ ?_)
-	     (debug "found json_unpack treedecl=" treedecl)
-	     (if (tree_is_jansson_declaration treedecl)		 
-		 (set_ref ref_json_unpack (make_tree discr_tree treedecl)))
-	     )
-	   (?_ (void))
-	   )))
+	   (?(tree_decl_at_source_location
+	      ?filepathv ?line ?col)
+	     (debug "jansson_finish_decl_hook treedecl=" treedecl " filepathv=" filepathv)
+	     (if (string_ends filepathv '"jansson.h")
+		 (match treedecl
+			(?(tree_type_decl ?trty  ?(cstring_same "json_t") ?uid)
+			  (debug "found json_t treedecl=" treedecl)
+			  (set_ref ref_json_t (make_tree discr_tree treedecl)))
+			(?(tree_function_decl_of_name "json_pack" ?_ ?_)
+			  (debug "found json_pack treedecl=" treedecl)
+			  (set_ref ref_json_pack (make_tree discr_tree treedecl)))
+			(?(tree_function_decl_of_name "json_unpack" ?_ ?_)
+			  (debug "found json_unpack treedecl=" treedecl)
+			  (set_ref ref_json_unpack (make_tree discr_tree treedecl)))
+			(?_ (void))
+			)))
+	   (?_ (void)))))
 
 
 
-;; MELT 0.9.7 has a tree_char_type_node cmatcher, but previous MELT don't have it, so..
-(defprimitive tree_char_type_node () :tree
-  :doc #{Gives the char type tree node}#
-  #{ char_type_node }#)
 
 
 ;; check a json_pack call with constant format vfmtstr string
 (defun jansson_check_pack_call (vfmtstr :gimple g :long nbargs)
   (debug "jansson_check_pack_call vfmtstr=" vfmtstr " g=" g " nbargs=" nbargs)
+  (assert_msg "check vfmtstr" (is_string vfmtstr))
+  (let ( (:long curargnum 1)
+	 (:long bracecount 0)
+	 )
+    (foreach_in_string
+     (vfmtstr)
+     (:long curch ix)
+     (let ( (:tree curarg (gimple_call_nth_arg g curargnum))
+	    )
+       (debug "jansson_check_pack_call curargnum#" curargnum " curch#" curch
+	      " ix#" ix " curarg=" curarg)
+       (match curch
+	      (#\{
+	       (setq bracecount (+i bracecount 1))
+	       (debug "jansson_check_pack_call opening brace bracecount#" bracecount)
+	       (void)
+	       )
+	      (#\}
+	       (setq bracecount (-i bracecount 1))
+	       (debug "jansson_check_pack_call closing brace bracecount#" bracecount)
+	       (void)
+	       )
+	      (#\n
+	       (debug "jansson_check_pack_call with null")
+	       (void)
+	       )
+	      (#\s
+	       (debug "jansson_check_pack_call expecting string curarg=" curarg)
+	       (setq curargnum (+i curargnum 1))
+	       (void)
+	       )
+	      (#\b
+	       (debug "jansson_check_pack_call expecting boolean int curarg=" curarg)
+	       (setq curargnum (+i curargnum 1))
+	       (void)
+	       )
+	      (#\i
+	       (debug "jansson_check_pack_call expecting int curarg=" curarg)
+	       (setq curargnum (+i curargnum 1))
+	       (void)
+	       )
+	      (#\I
+	       (debug "jansson_check_pack_call expecting json_int_t curarg=" curarg)
+	       (setq curargnum (+i curargnum 1))
+	       (void)
+	       )
+	      (#\f
+	       (debug "jansson_check_pack_call expecting double curarg=" curarg)
+	       (setq curargnum (+i curargnum 1))
+	       (void)
+	       )
+	      (#\o
+	       (debug "jansson_check_pack_call expecting json_t* curarg=" curarg)
+	       (setq curargnum (+i curargnum 1))
+	       (void)
+	       )
+	      (#\O
+	       (debug "jansson_check_pack_call expecting json_t* curarg=" curarg)
+	       (setq curargnum (+i curargnum 1))
+	       (void)
+	       )
+	      (?_
+	       (debug "jansson_check_pack_call strange char curch#" curch)))
+       ;;
+       (debug "jansson_check_pack_call end match curch=" curch)
+     )					;end foreach_in_string
+     (debug "jansson_check_pack_call end")
+    ))    
   (compile_warning "jansson_check_pack_call is incomplete")
 )
 
