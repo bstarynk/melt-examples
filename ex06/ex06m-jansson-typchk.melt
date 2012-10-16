@@ -37,7 +37,8 @@
 ;; global reference to the json_unpack type boxed tree
 (definstance ref_json_unpack class_reference)
 
-
+;; global reference to a pointer to char type boxed tree
+(definstance ref_ptr_char class_reference)
 
 ;; MELT 0.9.7 don't have these yet, but the next one will have
 ;; tree_useless_type_conversion_p & tree_types_compatible_p
@@ -57,20 +58,20 @@
     (match treedecl
 	   (?(tree_decl_at_source_location
 	      ?filepathv ?line ?col)
-	     (debug "jansson_finish_decl_hook treedecl=" treedecl " filepathv=" filepathv)
-	     (if (string_ends filepathv '"jansson.h")
-		 (match treedecl
-			(?(tree_type_decl ?trty  ?(cstring_same "json_t") ?uid)
-			  (debug "found json_t treedecl=" treedecl)
-			  (set_ref ref_json_t (make_tree discr_tree treedecl)))
-			(?(tree_function_decl_of_name "json_pack" ?_ ?_)
-			  (debug "found json_pack treedecl=" treedecl)
-			  (set_ref ref_json_pack (make_tree discr_tree treedecl)))
-			(?(tree_function_decl_of_name "json_unpack" ?_ ?_)
-			  (debug "found json_unpack treedecl=" treedecl)
-			  (set_ref ref_json_unpack (make_tree discr_tree treedecl)))
-			(?_ (void))
-			)))
+	     (when (string_ends filepathv '"jansson.h")
+	       (debug "jansson_finish_decl_hook treedecl=" treedecl "\n filepathv=" filepathv)
+	       (match treedecl
+		      (?(tree_type_decl ?trty  ?(cstring_same "json_t") ?uid)
+			(debug "found json_t treedecl=" treedecl)
+			(set_ref ref_json_t (make_tree discr_tree treedecl)))
+		      (?(tree_function_decl_of_name "json_pack" ?_ ?_)
+			(debug "found json_pack treedecl=" treedecl)
+			(set_ref ref_json_pack (make_tree discr_tree treedecl)))
+		      (?(tree_function_decl_of_name "json_unpack" ?_ ?_)
+			(debug "found json_unpack treedecl=" treedecl)
+			(set_ref ref_json_unpack (make_tree discr_tree treedecl)))
+		      (?_ (void))
+		      )))
 	   (?_ (void)))))
 
 
@@ -83,6 +84,7 @@
   (assert_msg "check vfmtstr" (is_string vfmtstr))
   (let ( (:long curargnum 1)
 	 (:long bracecount 0)
+	 (:long bracketcount 0)
 	 )
     (foreach_in_string
      (vfmtstr)
@@ -97,6 +99,11 @@
 	       (debug "jansson_check_pack_call opening brace bracecount#" bracecount)
 	       (void)
 	       )
+	      (#\[
+	       (setq bracketcount (+i bracketcount 1))
+	       (debug "jansson_check_pack_call opening bracket bracketcount#" bracketcount)
+	       (void)
+	       )
 	      (#\}
 	       (setq bracecount (-i bracecount 1))
 	       (debug "jansson_check_pack_call closing brace bracecount#" bracecount)
@@ -108,6 +115,16 @@
 	       )
 	      (#\s
 	       (debug "jansson_check_pack_call expecting string curarg=" curarg)
+	       (let ( (:tree curargtype (tree_type curarg))
+		      )
+		 (debug "jansson_check_pack_call expect string, curargtype=" curargtype)
+		 (match curargtype
+			(?(tree_pointer_type ?trpointedtype)
+			  (debug "jansson_check_pack_call string, trpointedtype=" trpointedtype))
+			(?_
+			 (debug "jansson_check_pack_call string, nonpointer curargtype=" curargtype)
+			 ))
+		 )
 	       (setq curargnum (+i curargnum 1))
 	       (void)
 	       )
@@ -163,24 +180,24 @@
      g
      ;; call to json_pack
      (?(gimple_call_1_more ?lhs tr_json_pack ?fmtarg ?nbargs)
-       (debug "found call to json_pack g=" g "\n* fmtarg=" fmtarg "\n* nbargs=" nbargs)
+       (debug "jansson_gimple_walker found call to json_pack g=" g "\n* fmtarg=" fmtarg "\n* nbargs=" nbargs)
        (match fmtarg
 	      (?(tree_addr_expr 
 		 ?(tree_pointer_type 
 		   ?(tree_array_type tr_char ?trdomtype)) 
 		 ?(tree_string_cst ?vfmtstr))
-		(debug "json_pack call fmtarg trdomtype=" trdomtype "\n vfmtstr=" vfmtstr)
+		(debug "jansson_gimple_walker json_pack call fmtarg trdomtype=" trdomtype "\n vfmtstr=" vfmtstr)
 		(jansson_check_pack_call vfmtstr g nbargs)
 		(void)
 		)
 	      (?_ 
-	       (debug "json_pack call other fmtarg=" fmtarg)
+	       (debug "jansson_gimple_walker json_pack call other fmtarg=" fmtarg)
 	       (void))
 	      )
        )
      ;; call to json_unpack
      (?(gimple_call_2_more ?lhs tr_json_unpack ?jsrootarg ?fmtarg ?nbargs)
-       (debug "found call to json_unpack g=" g " jsrootarg=" jsrootarg 
+       (debug "jansson_gimple_walker found call to json_unpack g=" g " jsrootarg=" jsrootarg 
 	      " fmtarg=" fmtarg " nbargs=" nbargs)
        )
      ;; anything else
@@ -227,14 +244,26 @@
 (defun jansson_docmd  (cmd moduldata)
   (debug "jansson_docmd cmd=" cmd)
   (register_finish_decl_hook_first jansson_finish_decl_hook)
-  (let ( (janssonpass (instance class_gcc_gimple_pass
+  (let (
+	;; for some reason, at this point, char_type_node is NULL in C
+	(:tree chartypetree (tree_char_type_node))
+	(:tree ptrchartree (tree_pointer_type chartypetree))
+	(ptrchartreeval (make_tree discr_tree ptrchartree))
+	(janssonpass (instance class_gcc_gimple_pass
 				:named_name '"jansson_pass"
 				;; a map to register the visited cfuns
 				:gccpass_data (make_maptree discr_map_trees 100)
 				:gccpass_exec jansson_pass_exec))
 	 )
+    (code_chunk showchartype_chk #{ /* $SHOWCHARTYPE_CHK */
+		debugeprintf("jansson_docmd char_type_node=%p chartypetree=%p\n",
+			     (void*) char_type_node, (void*) $CHARTYPETREE);
+		}#)
+    (debug "jansson_docmd chartypetree=" chartypetree " ptrchartree=" ptrchartree
+	   " ptrchartreeval=" ptrchartreeval)
+    (set_ref ref_ptr_char ptrchartreeval)
     (install_melt_gcc_pass janssonpass "after" "phiopt" 0)
-    (debug "janssonpass=" janssonpass)
+    (debug "janssonpass=" janssonpass " ptrchartreeval=" ptrchartreeval)
     (return :true)
     ))
 
