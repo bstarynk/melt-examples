@@ -242,30 +242,37 @@
    (debug "jansson_pass_exec end cfundecl=" cfundecl)
    ))
 
+
+;; the initialization, just before all passes
+(defun jansson_start_all_passes ()
+  (let ( (:tree chartypetree (tree_char_type_node))
+	 (:tree ptrchartree (tree_pointer_type chartypetree))
+	 (ptrchartreeval (make_tree discr_tree ptrchartree))
+	 )
+    (debug "jansson_start_all_passes chartypetree=" (tree_char_type_node)
+	   "\n ptrchartreeval=" ptrchartreeval)
+    (assert_msg "check chartypetree" chartypetree)
+    (set_ref ref_ptr_char ptrchartreeval)
+    )
+  )
+
 ;; command and MELT mode for our Jansson typechecking analysis
 (defun jansson_docmd  (cmd moduldata)
   (debug "jansson_docmd cmd=" cmd)
   (register_finish_decl_hook_first jansson_finish_decl_hook)
   (let (
 	;; for some reason, at this point, char_type_node is NULL in C
-	(:tree chartypetree (tree_char_type_node))
-	(:tree ptrchartree (tree_pointer_type chartypetree))
-	(ptrchartreeval (make_tree discr_tree ptrchartree))
 	(janssonpass (instance class_gcc_gimple_pass
 				:named_name '"jansson_pass"
 				;; a map to register the visited cfuns
 				:gccpass_data (make_maptree discr_map_trees 100)
 				:gccpass_exec jansson_pass_exec))
 	 )
-    (code_chunk showchartype_chk #{ /* $SHOWCHARTYPE_CHK */
-		debugeprintf("jansson_docmd char_type_node=%p chartypetree=%p\n",
-			     (void*) char_type_node, (void*) $CHARTYPETREE);
-		}#)
-    (debug "jansson_docmd chartypetree=" chartypetree " ptrchartree=" ptrchartree
-	   " ptrchartreeval=" ptrchartreeval)
-    (set_ref ref_ptr_char ptrchartreeval)
+    ;; at this early stage, (tree_char_type_node) gives a null tree. We need
+    ;; to register a hook before all passes to initialize
+    (register_all_passes_start_hook_first jansson_start_all_passes)
     (install_melt_gcc_pass janssonpass "after" "phiopt" 0)
-    (debug "janssonpass=" janssonpass " ptrchartreeval=" ptrchartreeval)
+    (debug "jansson_docmd installed janssonpass=" janssonpass)
     (return :true)
     ))
 
@@ -277,4 +284,4 @@
 )
 (install_melt_mode jansson_mode)
 
-;; eof ex06mèjansson-typchk.melt
+;; eof ex06m-jansson-typchk.melt
