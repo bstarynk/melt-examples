@@ -85,7 +85,9 @@
   (let ( (:long curargnum 1)
 	 (:long bracecount 0)
 	 (:long bracketcount 0)
+	 (:tree chartypetree (tree_char_type_node))
 	 )
+    (debug "jansson_check_pack_call chartypetree=" chartypetree)
     (foreach_in_string
      (vfmtstr)
      (:long curch ix)
