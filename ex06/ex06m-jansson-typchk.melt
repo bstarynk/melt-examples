@@ -77,7 +77,7 @@
 
 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; check a json_pack call with constant format vfmtstr string
 (defun jansson_check_pack_call (vfmtstr :gimple g :long nbargs)
   (debug "jansson_check_pack_call vfmtstr=" vfmtstr " g=" g " nbargs=" nbargs)
@@ -85,9 +85,11 @@
   (let ( (:long curargnum 1)
 	 (:long bracecount 0)
 	 (:long bracketcount 0)
-	 (:tree chartypetree (tree_char_type_node))
+	 (:tree tr_char (tree_char_type_node))
+	 (:tree tr_charptr (tree_content !ref_ptr_char))
 	 )
-    (debug "jansson_check_pack_call chartypetree=" chartypetree)
+    (debug "jansson_check_pack_call tr_char=" tr_char 
+	   "\n tr_charptr=" tr_charptr)
     (foreach_in_string
      (vfmtstr)
      (:long curch ix)
@@ -122,7 +124,24 @@
 		 (debug "jansson_check_pack_call expect string, curargtype=" curargtype)
 		 (match curargtype
 			(?(tree_pointer_type ?trpointedtype)
-			  (debug "jansson_check_pack_call string, trpointedtype=" trpointedtype))
+			  (debug "jansson_check_pack_call string, trpointedtype=" trpointedtype)
+			  (cond 
+			   ( (basile_useless_type_conversion_p trpointedtype tr_char)
+			     (debug "jansson_check_pack_call uselesschar trpointedtype=" trpointedtype)
+			     (void)
+			     )
+			   ( (basile_types_compatible_p trpointedtype tr_char)
+			     (debug "jansson_check_pack_call tycompchar trpointedtype=" trpointedtype)
+			     (void)
+			     )
+			   (:else
+			    (debug "jansson_check_pack_call bizarre trpointedtype=" trpointedtype)
+			    (void)
+			    )
+			   )
+			  (debug "jansson_check_pack_call string, aftercond trpointedtype=" trpointedtype)
+			  (void)
+			  )
 			(?_
 			 (debug "jansson_check_pack_call string, nonpointer curargtype=" curargtype)
 			 ))
@@ -175,9 +194,11 @@
   (let ( (:tree tr_json_pack (tree_content !ref_json_pack))
 	 (:tree tr_json_unpack (tree_content !ref_json_unpack))
 	 (:tree tr_char (tree_char_type_node))
+	 (:tree tr_charptr (tree_content !ref_ptr_char))
 	 )
     (debug "jansson_gimple_walker g=" g 
-	   "\n tr_json_pack=" tr_json_pack " tr_json_unpack=" tr_json_unpack)
+	   "\n tr_json_pack=" tr_json_pack " tr_json_unpack=" tr_json_unpack
+	   "\n tr_char=" tr_char "\n our tr_charptr=" tr_charptr)
     (match 
      g
      ;; call to json_pack
