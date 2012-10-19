@@ -31,6 +31,12 @@
 ;; global reference to the json_t type boxed tree
 (definstance ref_json_t class_reference)
 
+;; global reference to a pointer to json_t type boxed tree
+(definstance ref_ptr_json_t class_reference)
+
+;; global reference to a json_int_t type boxed tree
+(definstance ref_json_int_t class_reference)
+
 ;; global reference to the json_pack type boxed tree
 (definstance ref_json_pack class_reference)
 
@@ -39,6 +45,10 @@
 
 ;; global reference to a pointer to char type boxed tree
 (definstance ref_ptr_char class_reference)
+
+;; global reference to an int type boxed tree
+(definstance ref_int class_reference)
+
 
 ;; MELT 0.9.7 don't have these yet, but the next one will have
 ;; tree_useless_type_conversion_p & tree_types_compatible_p
@@ -62,19 +72,51 @@
 	       (debug "jansson_finish_decl_hook treedecl=" treedecl "\n filepathv=" filepathv)
 	       (match treedecl
 		      (?(tree_type_decl ?trty  ?(cstring_same "json_t") ?uid)
-			(debug "found json_t treedecl=" treedecl)
-			(set_ref ref_json_t (make_tree discr_tree treedecl)))
+			(debug "jansson_finish_decl_hook found json_t treedecl=" treedecl)
+			(set_ref ref_json_t (make_tree discr_tree treedecl))
+			(debug "jansson_finish_decl_hook ref_json_t=" ref_json_t)
+			(set_ref ref_ptr_json_t (make_tree discr_tree (tree_pointer_type trty)))
+			(debug "jansson_finish_decl_hook ref_ptr_json_t=" ref_ptr_json_t)
+			
+			)
+		      (?(tree_type_decl ?trty  ?(cstring_same "json_int_t") ?uid)
+			(debug "jansson_finish_decl_hook found json_int_t treedecl=" treedecl)
+			(set_ref ref_json_int_t (make_tree discr_tree treedecl))
+			(debug "jansson_finish_decl_hook found ref_json_int_t=" ref_json_int_t)
+			)
 		      (?(tree_function_decl_of_name "json_pack" ?_ ?_)
-			(debug "found json_pack treedecl=" treedecl)
+			(debug "jansson_finish_decl_hook found json_pack treedecl=" treedecl)
 			(set_ref ref_json_pack (make_tree discr_tree treedecl)))
 		      (?(tree_function_decl_of_name "json_unpack" ?_ ?_)
-			(debug "found json_unpack treedecl=" treedecl)
+			(debug "jansson_finish_decl_hook found json_unpack treedecl=" treedecl)
 			(set_ref ref_json_unpack (make_tree discr_tree treedecl)))
 		      (?_ (void))
 		      )))
 	   (?_ (void)))))
 
 
+;; utility function to check if a given Gimple argument is compatible with a given boxed type
+;; returns nil if it is not
+(defun jansson_arg_type_compatible (boxtype :tree trarg)
+  (debug "jansson_arg_type_compatible boxtype=" boxtype " trarg=" trarg)
+  (let ( (:tree trtype (tree_content boxtype))
+	 )
+    (debug "jansson_arg_type_compatible trtype=" trtype)
+    (assert_msg "trtype nonull" trtype)
+    (cond
+     ((==t trtype trarg) 
+      (debug "jansson_arg_type_compatible same types " trtype)
+      (return :true))
+     ((basile_useless_type_conversion_p trtype trarg)
+      (debug "jansson_arg_type_compatible useless_type_conversion_p trtype=" trtype " trarg=" trarg)
+      (return :true))
+     ((basile_useless_type_conversion_p trarg trtype)
+      (debug "jansson_arg_type_compatible rev.useless_type_conversion_p trarg=" trarg " trtype=" trtype)
+      (return :true))
+     (:else
+      (debug "jansson_arg_type_compatible uncompatible trtype=" trtype " trarg=" trarg)
+      (return ())))
+))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -120,31 +162,11 @@
 	      (#\s
 	       (debug "jansson_check_pack_call expecting string curarg=" curarg)
 	       (let ( (:tree curargtype (tree_type curarg))
+		      (compatyp (jansson_arg_type_compatible  !ref_ptr_char curargtype))
 		      )
-		 (debug "jansson_check_pack_call expect string, curargtype=" curargtype)
-		 (match curargtype
-			(?(tree_pointer_type ?trpointedtype)
-			  (debug "jansson_check_pack_call string, trpointedtype=" trpointedtype)
-			  (cond 
-			   ( (basile_useless_type_conversion_p trpointedtype tr_char)
-			     (debug "jansson_check_pack_call uselesschar trpointedtype=" trpointedtype)
-			     (void)
-			     )
-			   ( (basile_types_compatible_p trpointedtype tr_char)
-			     (debug "jansson_check_pack_call tycompchar trpointedtype=" trpointedtype)
-			     (void)
-			     )
-			   (:else
-			    (debug "jansson_check_pack_call bizarre trpointedtype=" trpointedtype)
-			    (void)
-			    )
-			   )
-			  (debug "jansson_check_pack_call string, aftercond trpointedtype=" trpointedtype)
-			  (void)
-			  )
-			(?_
-			 (debug "jansson_check_pack_call string, nonpointer curargtype=" curargtype)
-			 ))
+		 (debug "jansson_check_pack_call expect string, curargtype=" curargtype " compatyp=" compatyp)
+		 (if (null compatyp)
+		     (warning_at_tree curarg "strange argument to json_pack, expecting a string"))
 		 )
 	       (setq curargnum (+i curargnum 1))
 	       (void)
@@ -269,8 +291,11 @@
   (let ( (:tree chartypetree (tree_char_type_node))
 	 (:tree ptrchartree (tree_pointer_type chartypetree))
 	 (ptrchartreeval (make_tree discr_tree ptrchartree))
+	 (:tree inttypetree (tree_integer_type_node))
+	 (:tree ptrinttree  (tree_pointer_type inttypetree))
 	 )
     (debug "jansson_start_all_passes chartypetree=" (tree_char_type_node)
+	   "\n ptrchartree=" ptrchartree
 	   "\n ptrchartreeval=" ptrchartreeval)
     (assert_msg "check chartypetree" chartypetree)
     (set_ref ref_ptr_char ptrchartreeval)
