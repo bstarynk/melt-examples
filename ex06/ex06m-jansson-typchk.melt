@@ -49,6 +49,9 @@
 ;; global reference to an int type boxed tree
 (definstance ref_int class_reference)
 
+;; global reference to a double type boxed tree
+(definstance ref_double class_reference)
+
 
 ;; MELT 0.9.7 don't have these yet, but the next one will have
 ;; tree_useless_type_conversion_p & tree_types_compatible_p
@@ -203,16 +206,31 @@
 	       )
 	      (#\f
 	       (debug "jansson_check_pack_call expecting double curarg=" curarg)
+	       (let ( (:tree curargtype (tree_type curarg))
+		      (compatyp (jansson_arg_type_compatible  !ref_double curargtype))
+		      )
+		 (if (null compatyp)
+		     (warning_at_tree curarg "strange argument to json_pack, expecting a double")))
 	       (setq curargnum (+i curargnum 1))
 	       (void)
 	       )
 	      (#\o
 	       (debug "jansson_check_pack_call expecting json_t* curarg=" curarg)
+	       (let ( (:tree curargtype (tree_type curarg))
+		      (compatyp (jansson_arg_type_compatible  !ref_ptr_json_t curargtype))
+		      )
+		 (if (null compatyp)
+		     (warning_at_tree curarg "strange argument to json_pack, expecting a json_t*")))
 	       (setq curargnum (+i curargnum 1))
 	       (void)
 	       )
 	      (#\O
 	       (debug "jansson_check_pack_call expecting json_t* curarg=" curarg)
+	       (let ( (:tree curargtype (tree_type curarg))
+		      (compatyp (jansson_arg_type_compatible  !ref_ptr_json_t curargtype))
+		      )
+		 (if (null compatyp)
+		     (warning_at_tree curarg "strange argument to json_pack, expecting a json_t*")))
 	       (setq curargnum (+i curargnum 1))
 	       (void)
 	       )
@@ -307,8 +325,10 @@
 	 (:tree ptrchartree (tree_pointer_type chartypetree))
 	 (ptrchartreeval (make_tree discr_tree ptrchartree))
 	 (:tree inttypetree (tree_integer_type_node))
+	 (:tree doubletypetree (tree_double_type_node))
 	 (:tree ptrinttree  (tree_pointer_type inttypetree))
 	 (inttreeval (make_tree discr_tree inttypetree))
+	 (doubletreeval (make_tree discr_tree doubletypetree))
 	 )
     (debug "jansson_start_all_passes chartypetree=" (tree_char_type_node)
 	   "\n ptrchartree=" ptrchartree
@@ -316,6 +336,7 @@
     (assert_msg "check chartypetree" chartypetree)
     (set_ref ref_ptr_char ptrchartreeval)
     (set_ref ref_int inttreeval)
+    (set_ref ref_double doubletreeval)
     )
   )
 
