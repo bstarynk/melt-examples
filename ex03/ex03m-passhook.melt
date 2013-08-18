@@ -11,5 +11,5 @@
 			     )
 )
 
-(register_pass_execution_hook  passhook)
+(register_pass_execution_last  passhook)
 (debug "registered passexec passhook=" passhook)
