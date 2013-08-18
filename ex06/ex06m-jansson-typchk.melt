@@ -343,7 +343,7 @@
 ;; command and MELT mode for our Jansson typechecking analysis
 (defun jansson_docmd  (cmd moduldata)
   (debug "jansson_docmd cmd=" cmd)
-  (register_finish_decl_hook_first jansson_finish_decl_hook)
+  (register_finish_decl_first jansson_finish_decl_hook)
   (let (
 	;; for some reason, at this point, char_type_node is NULL in C
 	(janssonpass (instance class_gcc_gimple_pass
@@ -354,8 +354,8 @@
 	 )
     ;; at this early stage, (tree_char_type_node) gives a null tree. We need
     ;; to register a hook before all passes to initialize
-    (register_all_passes_start_hook_first jansson_start_all_passes)
-    (install_melt_gcc_pass janssonpass "after" "phiopt" 0)
+    (register_all_passes_start_first jansson_start_all_passes)
+    (install_melt_pass_in_gcc janssonpass :after '"phiopt" 0)
     (debug "jansson_docmd installed janssonpass=" janssonpass)
     (return :true)
     ))

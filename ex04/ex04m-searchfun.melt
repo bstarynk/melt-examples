@@ -45,7 +45,7 @@ Search functions whose name starts with bee and with all integral arguments")
 				 :named_name '"searchfun_pass"
 				 :gccpass_exec searchfun_pass_exec))
 	 )
-    (install_melt_gcc_pass searchfunpass "after" "cfg" 0)
+    (install_melt_pass_in_gcc searchfunpass :after '"cfg" 0)
     (debug "searchfunpass=" searchfunpass)
     (debug "searchfun mode success cmd=" cmd)
     (return :true)
