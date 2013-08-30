@@ -11,7 +11,7 @@
 ;; the function triggered by our searchfflush mode
 (defun showpass_docmd (cmd moduldata)
   (debug "searchfflush_docmd cmd=" cmd)
-  (register_pass_execution_hook showpass)
+  (register_pass_execution_last showpass)
   (return :true))
 
 (definstance showpass_mode

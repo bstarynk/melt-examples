@@ -17,7 +17,7 @@
 				 :named_name '"countfun_pass"
 				 :gccpass_exec countfun_pass_exec))
 	 )
-    (install_melt_gcc_pass countfunpass "after" "cfg" 0)
+    (install_melt_pass_in_gcc countfunpass :after '"cfg" 0)
     (debug "countfunpass=" countfunpass)
     (at_exit_first
      (lambda ()
