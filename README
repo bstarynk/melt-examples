@@ -9,6 +9,11 @@ The examples are either public domain, or free software licensed under
 the LGPL license. (licensing may vary from file to file).  They are
 developped on Gnu/Linux/Debian/Sid with a GCC 4.6 or better compiler.
 
+Please discuss these examples and anything MELT related on the
+low-traffic gcc-melt@googlegroups.com; we invite you to subscribe to
+that list http://groups.google.com/group/gcc-melt if interested in
+MELT (and in these examples).
+
 Each example has a small file SUMMARY. Here they are:
 ####SUMMARIES:
 ==> ex01/SUMMARY <==
